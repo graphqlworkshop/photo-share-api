@@ -4,27 +4,19 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add User and user queries to the schema
+### Add url field to `Photo`
 
 ```graphql
-type User {
-  id: ID!
-  name: String!
-}
-
-type Query {
-  totalUsers: Int!
-  allUsers: [User!]!
-  User(id: ID!): User!
+type Photo {
+  ...
+  url: String!
 }
 ```
 
-### Add query resolvers
+### Add `Photo.url` resolver
 
 ```javascript
-  Query: {
-    totalUsers: () => users.length,
-    allUsers: () => users,
-    User: (parent, { id }) => users.find(user => user.id === id)
-  },
+Photo: {
+  url: parent => `/img/photos/${parent.id}.jpg`;
+}
 ```

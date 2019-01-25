@@ -9,6 +9,7 @@ const typeDefs = gql`
     name: String!
     description: String
     category: PhotoCategory!
+    url: String!
   }
 
   type User {
@@ -61,6 +62,9 @@ const resolvers = {
       photos.push(newPhoto);
       return newPhoto;
     }
+  },
+  Photo: {
+    url: parent => `/img/photos/${parent.id}.jpg`
   }
 };
 
