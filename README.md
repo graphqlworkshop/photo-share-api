@@ -4,26 +4,55 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add postPhoto Mutation to the schema
+### Add Photo Type
 
 ```graphql
-type Mutation {
-  postPhoto(name: String!, description: String): Boolean!
+type Photo {
+  id: ID!
+  name: String!
+  description: String
 }
 ```
 
-### Add postPhoto Mutation Resolver
+### Add `allPhotos` Query
+
+```graphql
+type Query {
+  allPhotos: [Photo!]!
+}
+```
+
+### Add allPhotos Resolver
 
 ```javascript
-const resolvers = {
-  Mutation: {
-    postPhoto: (parent, args) => {
-      let newPhoto = {
-        ...args
-      };
-      photos.push(newPhoto);
-      return true;
-    }
-  }
-};
+allPhotos: () => photos;
+```
+
+### Adjust Mutation to return Photo
+
+```graphql
+postPhoto(name: String!, description: String): Photo!
+```
+
+### Adjust Mutation Resolver
+
+```shell
+npm i shortid --save
+```
+
+```javascript
+const { generate } = require("shortid");
+```
+
+```javascript
+Mutation: {
+  postPhoto: (parent, args) => {
+    let newPhoto = {
+      id: generate(),
+      ...args
+    };
+    photos.push(newPhoto);
+    return newPhoto;
+  };
+}
 ```

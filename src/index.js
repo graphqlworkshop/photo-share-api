@@ -1,27 +1,37 @@
 const { ApolloServer, gql } = require("apollo-server");
 const photos = require("../data/photos.json");
+const { generate } = require("shortid");
 
 const typeDefs = gql`
+  type Photo {
+    id: ID!
+    name: String!
+    description: String
+  }
+
   type Query {
     totalPhotos: Int!
+    allPhotos: [Photo!]!
   }
 
   type Mutation {
-    postPhoto(name: String!, description: String): Boolean!
+    postPhoto(name: String!, description: String): Photo!
   }
 `;
 
 const resolvers = {
   Query: {
-    totalPhotos: () => photos.length
+    totalPhotos: () => photos.length,
+    allPhotos: () => photos
   },
   Mutation: {
     postPhoto: (parent, args) => {
       let newPhoto = {
+        id: generate(),
         ...args
       };
       photos.push(newPhoto);
-      return true;
+      return newPhoto;
     }
   }
 };
