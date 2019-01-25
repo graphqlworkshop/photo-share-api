@@ -1,18 +1,22 @@
-const { ApolloServer } = require("apollo-server");
+const { ApolloServer, gql } = require("apollo-server");
+const photos = require("../data/photos.json");
 
-const typeDefs = `
-    type Query {
-        gnar: String
-    }
+const typeDefs = gql`
+  type Query {
+    totalPhotos: Int!
+  }
 `;
 
 const resolvers = {
   Query: {
-    gnar: () => "gnarly!!!"
+    totalPhotos: () => photos.length
   }
 };
 
-const server = new ApolloServer({ typeDefs, resolvers });
+const server = new ApolloServer({
+  typeDefs,
+  resolvers
+});
 
 server
   .listen()
