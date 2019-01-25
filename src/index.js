@@ -1,9 +1,9 @@
-const { ApolloServer } = require("apollo-server");
+const { ApolloServer, gql } = require("apollo-server");
 
-const typeDefs = `
-    type Query {
-        gnar: String
-    }
+const typeDefs = gql`
+  type Query {
+    gnar: String
+  }
 `;
 
 const resolvers = {
@@ -12,7 +12,10 @@ const resolvers = {
   }
 };
 
-const server = new ApolloServer({ typeDefs, resolvers });
+const server = new ApolloServer({
+  typeDefs,
+  resolvers
+});
 
 server
   .listen()
