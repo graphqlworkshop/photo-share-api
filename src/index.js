@@ -17,17 +17,19 @@ const typeDefs = gql`
     SELFIE
   }
 
+  input PostPhotoInput {
+    name: String!
+    description: String
+    category: PhotoCategory = PORTRAIT
+  }
+
   type Query {
     totalPhotos: Int!
     allPhotos: [Photo!]!
   }
 
   type Mutation {
-    postPhoto(
-      name: String!
-      description: String
-      category: PhotoCategory = PORTRAIT
-    ): Photo!
+    postPhoto(input: PostPhotoInput!): Photo!
   }
 `;
 
@@ -37,10 +39,10 @@ const resolvers = {
     allPhotos: () => photos
   },
   Mutation: {
-    postPhoto: (parent, args) => {
+    postPhoto: (parent, { input }) => {
       let newPhoto = {
         id: generate(),
-        ...args
+        ...input
       };
       photos.push(newPhoto);
       return newPhoto;
