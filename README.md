@@ -23,12 +23,12 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 ### Add an index.js file
 
 ```javascript
-const { ApolloServer } = require("apollo-server");
+const { ApolloServer, gql } = require("apollo-server");
 
-const typeDefs = `
-    type Query {
-        gnar: String
-    }
+const typeDefs = gql`
+  type Query {
+    gnar: String
+  }
 `;
 
 const resolvers = {
