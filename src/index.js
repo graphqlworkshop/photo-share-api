@@ -26,7 +26,7 @@ const typeDefs = gql`
   type Query {
     totalPhotos: Int!
     allPhotos: [Photo!]!
-    photo(id: ID!): Photo!
+    Photo(id: ID!): Photo!
   }
 
   type Mutation {
@@ -38,7 +38,7 @@ const resolvers = {
   Query: {
     totalPhotos: () => photos.length,
     allPhotos: () => photos,
-    photo: (parent, { id }) => photos.find(photo => photo.id === id)
+    Photo: (parent, { id }) => photos.find(photo => photo.id === id)
   },
   Mutation: {
     postPhoto: (parent, { input }) => {
