@@ -1,5 +1,6 @@
 const { ApolloServer, gql } = require("apollo-server");
 const photos = require("../data/photos.json");
+const users = require("../data/users.json");
 const { generate } = require("shortid");
 
 const typeDefs = gql`
@@ -8,6 +9,11 @@ const typeDefs = gql`
     name: String!
     description: String
     category: PhotoCategory!
+  }
+
+  type User {
+    id: ID!
+    name: String!
   }
 
   enum PhotoCategory {
@@ -27,6 +33,9 @@ const typeDefs = gql`
     totalPhotos: Int!
     allPhotos: [Photo!]!
     Photo(id: ID!): Photo!
+    totalUsers: Int!
+    allUsers: [User!]!
+    User(id: ID!): User!
   }
 
   type Mutation {
@@ -38,7 +47,10 @@ const resolvers = {
   Query: {
     totalPhotos: () => photos.length,
     allPhotos: () => photos,
-    Photo: (parent, { id }) => photos.find(photo => photo.id === id)
+    Photo: (parent, { id }) => photos.find(photo => photo.id === id),
+    totalUsers: () => users.length,
+    allUsers: () => users,
+    User: (parent, { id }) => users.find(user => user.id === id)
   },
   Mutation: {
     postPhoto: (parent, { input }) => {
