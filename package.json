@@ -1,0 +1,26 @@
+{
+  "name": "photo-rebuild",
+  "version": "1.0.0",
+  "description": "PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.graphqlworkshop.com). In this exercise, students build a GraphQL API for a small photo sharing application.",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon -r dotenv/config ./src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eveporcello/photo-rebuild.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eveporcello/photo-rebuild/issues"
+  },
+  "homepage": "https://github.com/eveporcello/photo-rebuild#readme",
+  "dependencies": {
+    "apollo-server": "^2.3.1",
+    "dotenv": "^6.2.0",
+    "graphql": "^14.1.1",
+    "nodemon": "^1.18.9"
+  }
+}
