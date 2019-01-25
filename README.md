@@ -4,54 +4,14 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add input type to the schema
+### Add `photo` query to schema
 
 ```graphql
-input PostPhotoInput {
-  name: String!
-  description: String
-  category: PhotoCategory = PORTRAIT
-}
-
-type Mutation {
-  postPhoto(input: PostPhotoInput!): Photo!
-}
+photo(id: ID!): Photo!
 ```
 
-### Change postPhoto Resolver to accept input
+### Add `photo` resolver
 
 ```javascript
-postPhoto: (parent, { input }) => {
-  let newPhoto = {
-    id: generate(),
-    ...input
-  };
-  photos.push(newPhoto);
-  return newPhoto;
-};
-```
-
-### Test it
-
-```graphql
-mutation Post($input: PostPhotoInput!) {
-  postPhoto(input: $input) {
-    id
-    name
-    description
-    category
-  }
-}
-```
-
-- Add json input
-
-```json
-{
-  "input": {
-    "name": "Red Red Wine",
-    "description": "you make me feel so fine",
-    "category": "ACTION"
-  }
-}
+photo: (parent, { id }) => photos.find(photo => photo.id === id);
 ```
