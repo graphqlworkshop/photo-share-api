@@ -4,14 +4,10 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add `photo` query to schema
+Within the data folder you will find sample json data for **Users**. You'll need to create types to match the data found in this file. Then, we need to add the necessary queries and resolvers to make the user data accessible with our GraphQL Service.
 
-```graphql
-photo(id: ID!): Photo!
-```
+### Goals
 
-### Add `photo` resolver
-
-```javascript
-photo: (parent, { id }) => photos.find(photo => photo.id === id);
-```
+- [ ] Ability to Query the **totalUsers** count
+- [ ] Ability to Query **allUsers** records
+- [ ] Ability to Query an individual **User**
