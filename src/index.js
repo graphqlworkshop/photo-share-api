@@ -15,6 +15,7 @@ const typeDefs = gql`
   type User {
     id: ID!
     name: String!
+    postedPhotos: [Photo!]!
   }
 
   enum PhotoCategory {
@@ -65,6 +66,9 @@ const resolvers = {
   },
   Photo: {
     url: parent => `/img/photos/${parent.id}.jpg`
+  },
+  User: {
+    postedPhotos: parent => photos.filter(photo => photo.userID === parent.id)
   }
 };
 
