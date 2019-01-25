@@ -10,6 +10,7 @@ const typeDefs = gql`
     description: String
     category: PhotoCategory!
     url: String!
+    postedBy: User!
   }
 
   type User {
@@ -65,7 +66,8 @@ const resolvers = {
     }
   },
   Photo: {
-    url: parent => `/img/photos/${parent.id}.jpg`
+    url: parent => `/img/photos/${parent.id}.jpg`,
+    postedBy: parent => users.find(user => user.id === parent.userID)
   },
   User: {
     postedPhotos: parent => photos.filter(photo => photo.userID === parent.id)
