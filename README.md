@@ -4,30 +4,60 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Main Idea
+### Add DateTime to the Schema
 
-We need a way to upload files to the server, but uploading a file is different than a regular field value.
+```graphql
+scalar DateTime
 
-- API needs to handle multipart/form-data
-- The custom scalar Upload is provided by Apollo, contains info about file including upload stream
-- Need to add express middleware to save the photo
-
-### Paste new index.js file
-
-- Install new dependencies
-
-```
-npm i express
-npm i apollo-server-express
-npm i graphql-playground-middleware-express
+type Photo {
+  id: ID!
+  name: String!
+  url: String!
+  description: String
+  category: PhotoCategory!
+  postedBy: User!
+  created: DateTime
+}
 ```
 
-- file scalar
-- postPhoto resolver
-- Serving the assets folder
+### Modify Resolver
+
+```javascript
+const { GraphQLScalarType } = require("graphql");
+
+DateTime: new GraphQLScalarType({
+  name: "DateTime",
+  description: "A valid date time value.",
+  parseValue: value => new Date(value),
+  serialize: value => new Date(value).toISOString(),
+  parseLiteral: ast => new Date(ast.value)
+});
+```
+
+- parseValue: invoked to parse client input that was sent as variables. This is a javascript object
+- parseLiteral: invoked to parse input sent inline - AST
+- serialize: invoked to take the data and convert it into a format that can be stored.
+
+### Add a date field to the postPhoto
+
+```javascript
+const newPhoto = {
+  ...input,
+  userID: currentUser.githubLogin,
+  created: new Date()
+};
+```
 
 ### Test the Upload (no playground)
 
 - [ ] navigate to [http://localhost:4000/img/photos](http://localhost:4000/img/photos)
-- [ ] add a users `githubToken` to the first token field (find in DB)
-- [ ] Click browser and select an image
+
+```graphql
+query {
+  allPhotos {
+    id
+    url
+    created
+  }
+}
+```

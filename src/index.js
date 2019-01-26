@@ -6,8 +6,11 @@ const { MongoClient } = require("mongodb");
 const { createServer } = require("http");
 const path = require("path");
 const { authorizeWithGithub, generateFakeUsers, uploadFile } = require("./lib");
+const { GraphQLScalarType } = require("graphql");
 
 const typeDefs = gql`
+  scalar DateTime
+
   type Photo {
     id: ID!
     name: String!
@@ -15,6 +18,7 @@ const typeDefs = gql`
     category: PhotoCategory!
     url: String
     postedBy: User!
+    created: DateTime
   }
 
   type User {
@@ -83,7 +87,8 @@ const resolvers = {
 
       const newPhoto = {
         ...input,
-        userID: currentUser.githubLogin
+        userID: currentUser.githubLogin,
+        created: new Date()
       };
 
       const { insertedId } = await photos.insertOne(newPhoto);
@@ -162,7 +167,14 @@ const resolvers = {
   User: {
     postedPhotos: (parent, args, { photos }) =>
       photos.find({ userID: parent.githubLogin }).toArray()
-  }
+  },
+  DateTime: new GraphQLScalarType({
+    name: "DateTime",
+    description: "A valid date time value.",
+    parseValue: value => new Date(value),
+    serialize: value => new Date(value).toISOString(),
+    parseLiteral: ast => new Date(ast.value)
+  })
 };
 
 const start = async port => {
