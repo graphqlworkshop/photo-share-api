@@ -4,44 +4,53 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add fake users with githubAuth Resolver
-
-```javascript
-githubAuth: async (parent, { code }, { users }) => {
-      let payload;
-
-      if (code === "TEST") {
-        const {
-          results: [fakeUser]
-        } = await generateFakeUsers(1);
-        payload = {
-          login: fakeUser.login.username,
-          name: `${fakeUser.name.first} ${fakeUser.name.last}`,
-          avatar_url: fakeUser.picture.thumbnail,
-          access_token: fakeUser.login.sha1
-        };
-      } else {
-        payload = await authorizeWithGithub({
-          client_id: process.env.GITHUB_CLIENT_ID,
-          client_secret: process.env.GITHUB_CLIENT_SECRET,
-          code
-        });
-      }
-  ...
+```graphql
+type Query {
+    me: User
+    ...
 }
 ```
 
-### Add test users
+### Add the Resolver
+
+```javascript
+me: (parent, args, { currentUser }) => currentUser,
+```
+
+### Modify Context
+
+**index.js**
+
+```javascript
+const context = async ({ req }) => {
+  const photos = db.collection("photos");
+  const users = db.collection("users");
+  const githubToken = req.headers.authorization;
+  const currentUser = await users.findOne({ githubToken });
+  return { photos, users, currentUser };
+};
+```
+
+**make sure to remove the context**
+
+```javascript
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context
+});
+```
+
+### Test
 
 ```graphql
-query users {
-  totalUsers
-  allUsers {
-    ...person
+query currentUser {
+  me {
+    name
   }
 }
 
-mutation addTestUser {
+mutation authorize {
   githubAuth(code: "TEST") {
     token
     user {
@@ -57,5 +66,13 @@ fragment person on User {
   postedPhotos {
     name
   }
+}
+```
+
+**HTTP Headers**
+
+```json
+{
+  "Authorization": "<ADD_HEADER>"
 }
 ```

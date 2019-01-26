@@ -38,6 +38,7 @@ const typeDefs = gql`
   }
 
   type Query {
+    me: User
     totalPhotos: Int!
     allPhotos: [Photo!]!
     Photo(id: ID!): Photo!
@@ -54,6 +55,7 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
+    me: (parent, args, { currentUser }) => currentUser,
     totalPhotos: (parent, args, { photos }) => photos.countDocuments(),
     allPhotos: (parent, args, { photos }) => photos.find().toArray(),
     Photo: (parent, { id }, { photos }) =>
@@ -136,20 +138,22 @@ const start = async () => {
   );
   const db = client.db();
 
+  const context = async ({ req }) => {
+    const photos = db.collection("photos");
+    const users = db.collection("users");
+    const githubToken = req.headers.authorization;
+    const currentUser = await users.findOne({ githubToken });
+    return { photos, users, currentUser };
+  };
+
   const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: {
-      photos: db.collection("photos"),
-      users: db.collection("users"),
-      currentUser: null
-    }
+    context
   });
 
   server
     .listen()
-    .then(console.log("Client ID", process.env.GITHUB_CLIENT_ID))
-    .then(console.log("Client Secret", process.env.GITHUB_CLIENT_SECRET))
     .then(({ port }) => `server listening on ${port}`)
     .then(console.log)
     .catch(console.error);
