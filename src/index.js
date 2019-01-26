@@ -1,6 +1,11 @@
-const { ApolloServer, gql, PubSub } = require("apollo-server");
-const { MongoClient, ObjectID } = require("mongodb");
-const { authorizeWithGithub, generateFakeUsers } = require("./lib");
+const express = require("express");
+const expressPlayground = require("graphql-playground-middleware-express")
+  .default;
+const { ApolloServer, gql, PubSub } = require("apollo-server-express");
+const { MongoClient } = require("mongodb");
+const { createServer } = require("http");
+const path = require("path");
+const { authorizeWithGithub, generateFakeUsers, uploadFile } = require("./lib");
 
 const typeDefs = gql`
   type Photo {
@@ -30,6 +35,7 @@ const typeDefs = gql`
     name: String!
     description: String
     category: PhotoCategory = PORTRAIT
+    file: Upload!
   }
 
   type AuthPayload {
@@ -82,6 +88,15 @@ const resolvers = {
 
       const { insertedId } = await photos.insertOne(newPhoto);
       newPhoto.id = insertedId.toString();
+
+      var toPath = path.join(
+        __dirname,
+        "..",
+        "assets",
+        "photos",
+        `${newPhoto.id}.jpg`
+      );
+      await uploadFile(input.file, toPath);
 
       pubsub.publish("photo-added", { newPhoto });
 
@@ -150,13 +165,12 @@ const resolvers = {
   }
 };
 
-const start = async () => {
+const start = async port => {
   const client = await MongoClient.connect(
     process.env.DB_HOST,
     { useNewUrlParser: true }
   );
   const db = client.db();
-
   const pubsub = new PubSub();
 
   const context = async ({ req, connection }) => {
@@ -175,11 +189,27 @@ const start = async () => {
     context
   });
 
-  server
-    .listen()
-    .then(({ port }) => `server listening on ${port}`)
-    .then(console.log)
-    .catch(console.error);
+  const app = express();
+  server.applyMiddleware({ app });
+
+  app.get(
+    "/playground",
+    expressPlayground({
+      endpoint: "/graphql",
+      subscriptionEndpoint: "/graphql"
+    })
+  );
+
+  app.use(
+    "/img/photos",
+    express.static(path.join(__dirname, "..", "assets", "photos"))
+  );
+
+  const httpServer = createServer(app);
+  server.installSubscriptionHandlers(httpServer);
+  httpServer.listen({ port }, () => {
+    console.log(`PhotoShare API running on port ${port}`);
+  });
 };
 
-start();
+start(process.env.PORT || 4000);

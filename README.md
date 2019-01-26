@@ -4,89 +4,30 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add Subscriptions to the Schema
+### Main Idea
 
-```graphql
-type Subscription {
-  newUser: User!
-  newPhoto: Photo!
-}
-```
+We need a way to upload files to the server, but uploading a file is different than a regular field value.
 
-### Import PubSub from ApolloServer
+- API needs to handle multipart/form-data
+- The custom scalar Upload is provided by Apollo, contains info about file including upload stream
+- Need to add express middleware to save the photo
 
-```javascript
-const { ApolloServer, gql, PubSub } = require("apollo-server");
-```
+### Paste new index.js file
 
-```javascript
-const db = client.db()
-const pubsub = new PubSub()
-
-const context = async ({ req, connection }) => {
-    ...
-    const githubToken = req ? req.headers.authorization : connection.context.Authorization
-    const currentUser = await users.findOne({ githubToken })
-    return { photos, users, currentUser, pubsub }
-}
+- Install new dependencies
 
 ```
-
-### Publish Events from Mutations
-
-```javascript
- Mutation: {
-    postPhoto: async (parent, { input }, { photos, currentUser, pubsub }) => {
-
-        ...
-
-        pubsub.publish('photo-added', { newPhoto })
-
-        return newPhoto
-
-    },
-    githubAuth: async (parent, { code }, { users, pubsub }) => {
-
-        ...
-
-        pubsub.publish('user-added', { newUser: user })
-
-        return { user, token: user.githubToken }
-
-    }
-},
+npm i express
+npm i apollo-server-express
+npm i graphql-playground-middleware-express
 ```
 
-### Add Subscription Resolvers
+- file scalar
+- postPhoto resolver
+- Serving the assets folder
 
-```javascript
-Subscription: {
-    newPhoto: {
-        subscribe: (parent, data, { pubsub }) => pubsub.asyncIterator('photo-added')
-    },
-    newUser: {
-        subscribe: (parent, data, { pubsub }) => pubsub.asyncIterator('user-added')
-    }
-}
-```
+### Test the Upload (no playground)
 
-### Test
-
-```graphql
-subscription {
-  newUser {
-    name
-  }
-}
-```
-
-```graphql
-mutation auth {
-  githubAuth(code: "TEST") {
-    token
-    user {
-      name
-    }
-  }
-}
-```
+- [ ] navigate to [http://localhost:4000/img/photos](http://localhost:4000/img/photos)
+- [ ] add a users `githubToken` to the first token field (find in DB)
+- [ ] Click browser and select an image
