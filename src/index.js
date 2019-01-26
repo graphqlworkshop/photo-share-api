@@ -1,86 +1,110 @@
-const { ApolloServer, gql } = require("apollo-server");
-const photos = require("../data/photos.json");
-const users = require("../data/users.json");
-const { generate } = require("shortid");
+const { ApolloServer } = require("apollo-server");
+const { MongoClient, ObjectID } = require("mongodb");
 
-const typeDefs = gql`
-  type Photo {
-    id: ID!
-    name: String!
-    description: String
-    category: PhotoCategory!
-    url: String!
-    postedBy: User!
-  }
+const typeDefs = `
+    type Photo {
+        id: ID!
+        name: String!
+        description: String
+        category: PhotoCategory!
+        url: String
+        postedBy: User!
+    }
 
-  type User {
-    id: ID!
-    name: String!
-    postedPhotos: [Photo!]!
-  }
+    type User {
+        githubLogin: ID!
+        name: String!
+        postedPhotos: [Photo!]!
+    }
 
-  enum PhotoCategory {
-    PORTRAIT
-    LANDSCAPE
-    ACTION
-    SELFIE
-  }
+    enum PhotoCategory {
+        PORTRAIT
+        LANDSCAPE
+        ACTION
+        SELFIE
+    }
 
-  input PostPhotoInput {
-    name: String!
-    description: String
-    category: PhotoCategory = PORTRAIT
-  }
+    input PostPhotoInput {
+        name: String!
+        description: String
+        category: PhotoCategory=PORTRAIT
+    }
 
-  type Query {
-    totalPhotos: Int!
-    allPhotos: [Photo!]!
-    Photo(id: ID!): Photo!
-    totalUsers: Int!
-    allUsers: [User!]!
-    User(id: ID!): User!
-  }
+    type Query {
+        totalPhotos: Int!
+        allPhotos: [Photo!]!
+        Photo(id: ID!): Photo!
+        totalUsers: Int!
+        allUsers: [User!]!
+        User(githubLogin: ID!): User
+    }
 
-  type Mutation {
-    postPhoto(input: PostPhotoInput!): Photo!
-  }
+    type Mutation {
+        postPhoto(input: PostPhotoInput!): Photo!
+    }
 `;
 
 const resolvers = {
   Query: {
-    totalPhotos: () => photos.length,
-    allPhotos: () => photos,
-    Photo: (parent, { id }) => photos.find(photo => photo.id === id),
-    totalUsers: () => users.length,
-    allUsers: () => users,
-    User: (parent, { id }) => users.find(user => user.id === id)
+    totalPhotos: (parent, args, { photos }) => photos.countDocuments(),
+    allPhotos: (parent, args, { photos }) => photos.find().toArray(),
+    Photo: (parent, { id }, { photos }) =>
+      photos.findOne({ _id: ObjectID(id) }),
+    totalUsers: (parent, args, { users }) => users.countDocuments(),
+    allUsers: (parent, args, { users }) => users.find().toArray(),
+    User: (parent, { githubLogin }, { users }) => users.findOne({ githubLogin })
   },
   Mutation: {
-    postPhoto: (parent, { input }) => {
-      let newPhoto = {
-        id: generate(),
-        ...input
+    postPhoto: async (parent, { input }, { photos, currentUser }) => {
+      if (!currentUser) {
+        throw new Error("only an authorized user can post a photo");
+      }
+
+      const newPhoto = {
+        ...input,
+        userID: currentUser.githubLogin
       };
-      photos.push(newPhoto);
+
+      const { insertedId } = await photos.insertOne(newPhoto);
+      newPhoto.id = insertedId.toString();
+
       return newPhoto;
     }
   },
   Photo: {
-    url: parent => `/img/photos/${parent.id}.jpg`,
-    postedBy: parent => users.find(user => user.id === parent.userID)
+    id: parent => parent.id || parent._id.toString(),
+    url: parent => `/img/photos/${parent.id || parent._id.toString()}.jpg`,
+    postedBy: (parent, args, { users }) =>
+      users.findOne({ githubLogin: parent.userID })
   },
   User: {
-    postedPhotos: parent => photos.filter(photo => photo.userID === parent.id)
+    postedPhotos: (parent, args, { photos }) =>
+      photos.find({ userID: parent.githubLogin }).toArray()
   }
 };
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers
-});
+const start = async () => {
+  const client = await MongoClient.connect(
+    process.env.DB_HOST,
+    { useNewUrlParser: true }
+  );
+  const db = client.db();
 
-server
-  .listen()
-  .then(({ port }) => `server listening on ${port}`)
-  .then(console.log)
-  .catch(console.error);
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: {
+      photos: db.collection("photos"),
+      users: db.collection("users"),
+      currentUser: null
+    }
+  });
+
+  server
+    .listen()
+    .then(({ port }) => `server listening on ${port}`)
+    .then(console.log)
+    .catch(console.error);
+};
+
+start();

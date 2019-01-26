@@ -4,23 +4,89 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Add `postedBy` field to `Photo`
+### New `index.js` file Walkthrough
+
+### Install mongodb
+
+```sh
+npm install mongodb
+```
+
+### Add mongo
+
+- Typical Mongo Service (photo-share database)
+
+```
+mongodb://localhost:27017/photo-share
+```
+
+- Installing mongo
+
+```
+brew install mongodb
+```
+
+- Checking your services
+
+```
+brew services list
+```
+
+- Starting the mongo service
+
+```
+brew services start mongodb
+```
+
+- Connecting to the shell
+
+```
+mongo
+```
+
+### Add .env file
+
+```
+DB_HOST=mongodb://localhost:27017/photo-share
+```
+
+### Send Query for Data
 
 ```graphql
-type Photo {
-  id: ID!
-  name: String!
-  description: String
-  category: PhotoCategory!
-  url: String!
-  postedBy: User!
+query users {
+  allUsers {
+    githubLogin
+    name
+  }
 }
 ```
 
-### Add `postedBy` resolver
+### Try Mutation
 
-```javascript
-Photo: {
-  postedBy: parent => users.find(user => user.id === parent.userID);
+```graphql
+mutation postPhoto($input: PostPhotoInput!) {
+  postPhoto(input: $input) {
+    id
+    name
+    description
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "name": "sunset",
+    "description": "beautiful sunset",
+    "category": "LANDSCAPE"
+  }
+}
+```
+
+### Add a user in context
+
+```
+currentUser: {
+  githubLogin: "someone"
 }
 ```
