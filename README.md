@@ -4,20 +4,74 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-- Configure OAuth on GitHub
-- Create an App
-- Adjust `.env` file
+- Modify user type
 
-```
-GITHUB_CLIENT_ID=<YOUR_ID_HERE>
-GITHUB_CLIENT_SECRET=<YOUR_SECRET_HERE>
+```graphql
+type User {
+  githubLogin: ID!
+  name: String!
+  avatar: String!
+  postedPhotos: [Photo!]!
+}
 ```
 
-- Log both with the server
+- Add mutation
+
+```graphql
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type Mutation {
+  postPhoto(input: PostPhotoInput!): Photo!
+  githubAuth(code: String!): AuthPayload!
+}
+```
+
+- Add githubAuth Mutation
 
 ```javascript
-server
-  .listen()
-  .then(console.log("Client ID", process.env.GITHUB_CLIENT_ID))
-  .then(console.log("Client Secret", process.env.GITHUB_CLIENT_SECRET));
+const { authorizeWithGithub } = require("./lib");
+
+...
+
+githubAuth: async (parent, { code }, { users }) => {
+  const payload = await authorizeWithGithub({
+    client_id: process.env.GITHUB_CLIENT_ID,
+    client_secret: process.env.GITHUB_CLIENT_SECRET,
+    code
+  });
+
+  const githubUserInfo = {
+    githubLogin: payload.login,
+    name: payload.name,
+    avatar: payload.avatar_url,
+    githubToken: payload.access_token
+  };
+
+  const {
+    ops: [user]
+  } = await users.replaceOne({ githubLogin: payload.login }, githubUserInfo, {
+    upsert: true
+  });
+
+  return { user, token: user.githubToken };
+};
+```
+
+- Go to: `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=user`
+- Get code
+- Send mutation
+
+```graphql
+mutation {
+  githubAuth(code: "<CODE_HERE>") {
+    token
+    user {
+      name
+      githubLogin
+    }
+  }
+}
 ```

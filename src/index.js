@@ -1,47 +1,55 @@
-const { ApolloServer } = require("apollo-server");
+const { ApolloServer, gql } = require("apollo-server");
 const { MongoClient, ObjectID } = require("mongodb");
+const { authorizeWithGithub } = require("./lib");
 
-const typeDefs = `
-    type Photo {
-        id: ID!
-        name: String!
-        description: String
-        category: PhotoCategory!
-        url: String
-        postedBy: User!
-    }
+const typeDefs = gql`
+  type Photo {
+    id: ID!
+    name: String!
+    description: String
+    category: PhotoCategory!
+    url: String
+    postedBy: User!
+  }
 
-    type User {
-        githubLogin: ID!
-        name: String!
-        postedPhotos: [Photo!]!
-    }
+  type User {
+    githubLogin: ID!
+    name: String!
+    avatar: String!
+    postedPhotos: [Photo!]!
+  }
 
-    enum PhotoCategory {
-        PORTRAIT
-        LANDSCAPE
-        ACTION
-        SELFIE
-    }
+  enum PhotoCategory {
+    PORTRAIT
+    LANDSCAPE
+    ACTION
+    SELFIE
+  }
 
-    input PostPhotoInput {
-        name: String!
-        description: String
-        category: PhotoCategory=PORTRAIT
-    }
+  input PostPhotoInput {
+    name: String!
+    description: String
+    category: PhotoCategory = PORTRAIT
+  }
 
-    type Query {
-        totalPhotos: Int!
-        allPhotos: [Photo!]!
-        Photo(id: ID!): Photo!
-        totalUsers: Int!
-        allUsers: [User!]!
-        User(githubLogin: ID!): User
-    }
+  type AuthPayload {
+    token: String!
+    user: User!
+  }
 
-    type Mutation {
-        postPhoto(input: PostPhotoInput!): Photo!
-    }
+  type Query {
+    totalPhotos: Int!
+    allPhotos: [Photo!]!
+    Photo(id: ID!): Photo!
+    totalUsers: Int!
+    allUsers: [User!]!
+    User(githubLogin: ID!): User
+  }
+
+  type Mutation {
+    postPhoto(input: PostPhotoInput!): Photo!
+    githubAuth(code: String!): AuthPayload!
+  }
 `;
 
 const resolvers = {
@@ -69,6 +77,34 @@ const resolvers = {
       newPhoto.id = insertedId.toString();
 
       return newPhoto;
+    },
+    githubAuth: async (parent, { code }, { users }) => {
+      const payload = await authorizeWithGithub({
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code
+      });
+
+      if (payload.message) {
+        throw new Error(payload.message);
+      }
+
+      const githubUserInfo = {
+        githubLogin: payload.login,
+        name: payload.name,
+        avatar: payload.avatar_url,
+        githubToken: payload.access_token
+      };
+
+      const {
+        ops: [user]
+      } = await users.replaceOne(
+        { githubLogin: payload.login },
+        githubUserInfo,
+        { upsert: true }
+      );
+
+      return { user, token: user.githubToken };
     }
   },
   Photo: {
