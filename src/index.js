@@ -1,4 +1,4 @@
-const { ApolloServer, gql } = require("apollo-server");
+const { ApolloServer, gql, PubSub } = require("apollo-server");
 const { MongoClient, ObjectID } = require("mongodb");
 const { authorizeWithGithub, generateFakeUsers } = require("./lib");
 
@@ -51,6 +51,11 @@ const typeDefs = gql`
     postPhoto(input: PostPhotoInput!): Photo!
     githubAuth(code: String!): AuthPayload!
   }
+
+  type Subscription {
+    newUser: User!
+    newPhoto: Photo!
+  }
 `;
 
 const resolvers = {
@@ -65,7 +70,7 @@ const resolvers = {
     User: (parent, { githubLogin }, { users }) => users.findOne({ githubLogin })
   },
   Mutation: {
-    postPhoto: async (parent, { input }, { photos, currentUser }) => {
+    postPhoto: async (parent, { input }, { photos, currentUser, pubsub }) => {
       if (!currentUser) {
         throw new Error("only an authorized user can post a photo");
       }
@@ -78,9 +83,11 @@ const resolvers = {
       const { insertedId } = await photos.insertOne(newPhoto);
       newPhoto.id = insertedId.toString();
 
+      pubsub.publish("photo-added", { newPhoto });
+
       return newPhoto;
     },
-    githubAuth: async (parent, { code }, { users }) => {
+    githubAuth: async (parent, { code }, { users, pubsub }) => {
       let payload;
 
       if (code === "TEST") {
@@ -116,7 +123,19 @@ const resolvers = {
         { upsert: true }
       );
 
+      pubsub.publish("user-added", { newUser: user });
+
       return { user, token: user.githubToken };
+    }
+  },
+  Subscription: {
+    newPhoto: {
+      subscribe: (parent, data, { pubsub }) =>
+        pubsub.asyncIterator("photo-added")
+    },
+    newUser: {
+      subscribe: (parent, data, { pubsub }) =>
+        pubsub.asyncIterator("user-added")
     }
   },
   Photo: {
@@ -138,12 +157,16 @@ const start = async () => {
   );
   const db = client.db();
 
-  const context = async ({ req }) => {
+  const pubsub = new PubSub();
+
+  const context = async ({ req, connection }) => {
     const photos = db.collection("photos");
     const users = db.collection("users");
-    const githubToken = req.headers.authorization;
+    const githubToken = req
+      ? req.headers.authorization
+      : connection.context.Authorization;
     const currentUser = await users.findOne({ githubToken });
-    return { photos, users, currentUser };
+    return { photos, users, currentUser, pubsub };
   };
 
   const server = new ApolloServer({

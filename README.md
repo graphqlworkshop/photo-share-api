@@ -4,75 +4,89 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
+### Add Subscriptions to the Schema
+
 ```graphql
-type Query {
-    me: User
-    ...
+type Subscription {
+  newUser: User!
+  newPhoto: Photo!
 }
 ```
 
-### Add the Resolver
+### Import PubSub from ApolloServer
 
 ```javascript
-me: (parent, args, { currentUser }) => currentUser,
+const { ApolloServer, gql, PubSub } = require("apollo-server");
 ```
 
-### Modify Context
-
-**index.js**
-
 ```javascript
-const context = async ({ req }) => {
-  const photos = db.collection("photos");
-  const users = db.collection("users");
-  const githubToken = req.headers.authorization;
-  const currentUser = await users.findOne({ githubToken });
-  return { photos, users, currentUser };
-};
+const db = client.db()
+const pubsub = new PubSub()
+
+const context = async ({ req, connection }) => {
+    ...
+    const githubToken = req ? req.headers.authorization : connection.context.Authorization
+    const currentUser = await users.findOne({ githubToken })
+    return { photos, users, currentUser, pubsub }
+}
+
 ```
 
-**make sure to remove the context**
+### Publish Events from Mutations
 
 ```javascript
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context
-});
+ Mutation: {
+    postPhoto: async (parent, { input }, { photos, currentUser, pubsub }) => {
+
+        ...
+
+        pubsub.publish('photo-added', { newPhoto })
+
+        return newPhoto
+
+    },
+    githubAuth: async (parent, { code }, { users, pubsub }) => {
+
+        ...
+
+        pubsub.publish('user-added', { newUser: user })
+
+        return { user, token: user.githubToken }
+
+    }
+},
+```
+
+### Add Subscription Resolvers
+
+```javascript
+Subscription: {
+    newPhoto: {
+        subscribe: (parent, data, { pubsub }) => pubsub.asyncIterator('photo-added')
+    },
+    newUser: {
+        subscribe: (parent, data, { pubsub }) => pubsub.asyncIterator('user-added')
+    }
+}
 ```
 
 ### Test
 
 ```graphql
-query currentUser {
-  me {
-    name
-  }
-}
-
-mutation authorize {
-  githubAuth(code: "TEST") {
-    token
-    user {
-      ...person
-    }
-  }
-}
-
-fragment person on User {
-  name
-  githubLogin
-  avatar
-  postedPhotos {
+subscription {
+  newUser {
     name
   }
 }
 ```
 
-**HTTP Headers**
-
-```json
-{
-  "Authorization": "<ADD_HEADER>"
+```graphql
+mutation auth {
+  githubAuth(code: "TEST") {
+    token
+    user {
+      name
+    }
+  }
 }
 ```
