@@ -1,6 +1,6 @@
 const { ApolloServer, gql } = require("apollo-server");
 const { MongoClient, ObjectID } = require("mongodb");
-const { authorizeWithGithub } = require("./lib");
+const { authorizeWithGithub, generateFakeUsers } = require("./lib");
 
 const typeDefs = gql`
   type Photo {
@@ -79,14 +79,24 @@ const resolvers = {
       return newPhoto;
     },
     githubAuth: async (parent, { code }, { users }) => {
-      const payload = await authorizeWithGithub({
-        client_id: process.env.GITHUB_CLIENT_ID,
-        client_secret: process.env.GITHUB_CLIENT_SECRET,
-        code
-      });
+      let payload;
 
-      if (payload.message) {
-        throw new Error(payload.message);
+      if (code === "TEST") {
+        const {
+          results: [fakeUser]
+        } = await generateFakeUsers(1);
+        payload = {
+          login: fakeUser.login.username,
+          name: `${fakeUser.name.first} ${fakeUser.name.last}`,
+          avatar_url: fakeUser.picture.thumbnail,
+          access_token: fakeUser.login.sha1
+        };
+      } else {
+        payload = await authorizeWithGithub({
+          client_id: process.env.GITHUB_CLIENT_ID,
+          client_secret: process.env.GITHUB_CLIENT_SECRET,
+          code
+        });
       }
 
       const githubUserInfo = {
