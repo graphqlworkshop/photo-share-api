@@ -4,50 +4,42 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### New `index.js` file Walkthrough
-
-### Install mongodb
+### Installing mongodb
 
 ```sh
 npm install mongodb
 ```
 
-### Add mongo
+### Adding mongo
 
-- Typical Mongo Service (photo-share database)
+**Installing mongodb**
 
-```
-mongodb://localhost:27017/photo-share
-```
-
-- Installing mongo
-
-```
+```sh
 brew install mongodb
 ```
 
-- Checking your services
+**Checking your services**
 
-```
+```sh
 brew services list
 ```
 
-- Starting the mongo service
+**Starting the mongo service**
 
 ```
 brew services start mongodb
 ```
 
-- Connecting to the shell
-
-```
-mongo
-```
+### New `index.js` file Walkthrough
 
 ### Add .env file
 
 ```
 DB_HOST=mongodb://localhost:27017/photo-share
+```
+
+```
+npm start
 ```
 
 ### Send Query for Data
