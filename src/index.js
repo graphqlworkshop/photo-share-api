@@ -102,6 +102,8 @@ const start = async () => {
 
   server
     .listen()
+    .then(console.log("Client ID", process.env.GITHUB_CLIENT_ID))
+    .then(console.log("Client Secret", process.env.GITHUB_CLIENT_SECRET))
     .then(({ port }) => `server listening on ${port}`)
     .then(console.log)
     .catch(console.error);

@@ -4,81 +4,20 @@ PhotoShare is the main back-end exercise for [GraphQL Workshop](https://www.grap
 
 ## Changes
 
-### Installing mongodb
-
-```sh
-npm install mongodb
-```
-
-### Adding mongo
-
-**Installing mongodb**
-
-```sh
-brew install mongodb
-```
-
-**Checking your services**
-
-```sh
-brew services list
-```
-
-**Starting the mongo service**
+- Configure OAuth on GitHub
+- Create an App
+- Adjust `.env` file
 
 ```
-brew services start mongodb
+GITHUB_CLIENT_ID=<YOUR_ID_HERE>
+GITHUB_CLIENT_SECRET=<YOUR_SECRET_HERE>
 ```
 
-### New `index.js` file Walkthrough
+- Log both with the server
 
-### Add .env file
-
-```
-DB_HOST=mongodb://localhost:27017/photo-share
-```
-
-```
-npm start
-```
-
-### Send Query for Data
-
-```graphql
-query users {
-  allUsers {
-    githubLogin
-    name
-  }
-}
-```
-
-### Try Mutation
-
-```graphql
-mutation postPhoto($input: PostPhotoInput!) {
-  postPhoto(input: $input) {
-    id
-    name
-    description
-  }
-}
-```
-
-```json
-{
-  "input": {
-    "name": "sunset",
-    "description": "beautiful sunset",
-    "category": "LANDSCAPE"
-  }
-}
-```
-
-### Add a user in context
-
-```
-currentUser: {
-  githubLogin: "someone"
-}
+```javascript
+server
+  .listen()
+  .then(console.log("Client ID", process.env.GITHUB_CLIENT_ID))
+  .then(console.log("Client Secret", process.env.GITHUB_CLIENT_SECRET));
 ```
